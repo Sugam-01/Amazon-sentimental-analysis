@@ -19,29 +19,19 @@ user_input = st.text_input("Enter text and click on Predict", "")
 # Prediction on single sentence
 if st.button("Predict"):
     if uploaded_file is not None:
-        # Read the uploaded file into memory
-        file_content = uploaded_file.read()
-        files = {"file": ("uploaded_file.csv", file_content)}
+        file = {"file": uploaded_file}
+        response = requests.post(prediction_endpoint, files=file)
+        response_bytes = BytesIO(response.content)
+        response_df = pd.read_csv(response_bytes)
 
-        response = requests.post(prediction_endpoint, files=files)
+        st.download_button(
+            label="Download Predictions",
+            data=response_bytes,
+            file_name="Predictions.csv",
+            key="result_download_button",
+        )
 
-        if response.status_code == 200:
-            response_bytes = BytesIO(response.content)
-            response_df = pd.read_csv(response_bytes)
-
-            st.download_button(
-                label="Download Predictions",
-                data=response_bytes,
-                file_name="Predictions.csv",
-                key="result_download_button",
-            )
-        else:
-            st.error("Failed to get predictions. Please check the server.")
     else:
         response = requests.post(prediction_endpoint, data={"text": user_input})
-
-        if response.status_code == 200:
-            response = response.json()
-            st.write(f"Predicted sentiment: {response['prediction']}")
-        else:
-            st.error("Failed to get prediction. Please check the server.")
+        response = response.json()
+        st.write(f"Predicted sentiment: {response['prediction']}")
